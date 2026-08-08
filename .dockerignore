@@ -1,0 +1,39 @@
+# .dockerignore für domainstats
+# Code/src kommt per Bind-Mount — nicht ins Image bauen
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Daten — kommen per Bind-Mount
+data/
+geoip/
+raw/
+integrity_cache/
+*.db
+*.db.bak.*
+releases.json
+
+# venv — kommt nicht ins Image
+venv/
+.venv/
+
+# Dev/Doku
+*.md
+*.sh
+scratch/
+docs/
+dummy_deploy/
+.git/
+.gitignore
+tests/
+
+# Secrets
+.env
+hetzner_key

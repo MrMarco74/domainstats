@@ -1,0 +1,46 @@
+# domainstats — docker-compose.yml
+#
+# SECURITY WARNING: this app has NO built-in authentication on any route.
+# Port 8000 must NOT be exposed directly to the internet or LAN — bind it
+# only to a host address reachable by your own reverse-proxy (which should
+# terminate TLS and enforce authentication), e.g. via the docker bridge
+# gateway IP, not 0.0.0.0 and not a public interface.
+#
+# All paths/hostnames/IPs below are examples — adapt them to your environment.
+#
+# Build (SSH-Key als Secret, kein Agent nötig):
+#   docker compose build
+# (Der Secret-Mount kommt aus der secrets:-Sektion unten - kein CLI-Flag
+# nötig bzw. auf älteren Compose-Versionen ohne --secret-Flag-Support gar
+# nicht verfügbar.)
+#
+services:
+  domainstats:
+    image: domainstats:latest
+    build:
+      context: .
+      secrets:
+        - ssh_key   # SSH-Key für git+ssh pylibs install (kein Agent nötig)
+    container_name: domainstats-api
+    restart: unless-stopped
+    ports:
+      # Example: bind only to your docker-bridge-gateway IP so a reverse
+      # proxy on the host can reach it, but it stays unreachable from the
+      # LAN/internet directly. Replace with your own bridge gateway address.
+      - "172.17.0.1:8000:8000"
+    volumes:
+      - /opt/domainstats/src/src:/app/src:ro      # Code read-only (repo checkout root is src/, code lives in its own nested src/ subfolder) — adapt path
+      - /opt/domainstats/data:/app/data           # DB, GeoIP, raw logs, integrity_cache — adapt path
+      - /opt/domainstats/geoip:/app/geoip:ro      # GeoIP-DBs — adapt path
+      - /opt/domainstats/scripts:/app/scripts     # run_daily.sh (systemd-Timer) — adapt path
+      - /opt/domainstats/.env:/app/.env:ro        # Credentials — adapt path
+      - /var/log/nginx:/var/log/nginx:ro          # optional: reverse-proxy access logs, if applicable to your setup
+    env_file:
+      - /opt/domainstats/.env   # adapt path
+    working_dir: /app
+    # Storage für das logs.db braucht genug shared memory
+    shm_size: "128mb"
+
+secrets:
+  ssh_key:
+    file: /root/.ssh/id_ed25519   # path to your own SSH private key used to install pylibs at build time — adapt to your environment

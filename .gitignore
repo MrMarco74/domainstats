@@ -1,0 +1,30 @@
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# venv
+venv/
+.venv/
+
+# Runtime data — never commit real logs/DBs/scan results
+data/
+*.db
+*.db.bak.*
+*.db-journal
+domainlist.csv
+dummy_deploy/
+scratch/
+
+# Secrets
+.env
+hetzner_key
+id_rsa
+id_ed25519
+id_ed25519_*
+*.pem

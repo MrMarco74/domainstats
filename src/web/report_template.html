@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DomainStats | Export Report</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-color: #00f2fe;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 3rem; }
+        .stat-card { background: var(--card-bg); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--glass-border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .stat-label { color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.5rem; }
+        .stat-value { font-size: 2rem; font-weight: 700; color: var(--accent-color); }
+        .chart-container { background: var(--card-bg); padding: 1.5rem; border-radius: 1rem; border: 1px solid var(--glass-border); margin-bottom: 2rem; }
+        h2 { margin-top: 0; color: var(--text-primary); border-left: 4px solid var(--accent-color); padding-left: 1rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th { text-align: left; color: var(--text-secondary); padding: 0.75rem; border-bottom: 1px solid var(--glass-border); }
+        td { padding: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .badge { padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 700; background: var(--accent-color); color: var(--bg-color); }
+        .footer { text-align: center; color: var(--text-secondary); font-size: 0.8rem; margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--glass-border); }
+        @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1 style="margin:0;">DomainStats Export</h1>
+                <div class="stat-label">Report für: <span id="report-domain" style="color: var(--accent-color); font-weight: bold;"></span></div>
+            </div>
+            <div style="text-align: right;">
+                <div class="stat-label">Exportiert am:</div>
+                <div id="export-date" style="font-weight: bold;"></div>
+            </div>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Gesamt Requests</div>
+                <div id="total-requests" class="stat-value">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Unique IPs</div>
+                <div id="unique-ips" class="stat-value">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Traffic (MB)</div>
+                <div id="total-traffic" class="stat-value">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Error Rate</div>
+                <div id="error-rate" class="stat-value">-%</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h2>Traffic Verlauf (Historie)</h2>
+            <canvas id="timeseriesChart" style="max-height: 300px;"></canvas>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+            <div class="chart-container">
+                <h2>Top Seiten</h2>
+                <table id="pages-table">
+                    <thead><tr><th>Pfad</th><th>Aufrufe</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="chart-container">
+                <h2>Security Audit (Top Bedrohungen)</h2>
+                <table id="security-table">
+                    <thead><tr><th>Typ</th><th>IP (Anonymisiert)</th><th>Land</th><th>Count</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h2>Letzte Releases</h2>
+            <table id="releases-table">
+                <thead><tr><th>Datum</th><th>Version</th><th>Titel</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            Generated by DomainStats | Privacy Mode Active (IP Anonymization)
+        </div>
+    </div>
+
+    <script>
+        // DATA INJECTION POINT
+        const data = {{ DATA_JSON }};
+
+        document.getElementById('report-domain').textContent = data.domain || 'Alle Domains';
+        document.getElementById('export-date').textContent = new Date().toLocaleString();
+
+        // Populate Overview
+        document.getElementById('total-requests').textContent = data.overview.total_requests.toLocaleString();
+        document.getElementById('unique-ips').textContent = data.overview.unique_ips.toLocaleString();
+        document.getElementById('total-traffic').textContent = data.overview.total_traffic_mb.toLocaleString();
+        document.getElementById('error-rate').textContent = data.overview.error_rate + '%';
+
+        // Populate Pages
+        const pagesTbody = document.querySelector('#pages-table tbody');
+        data.pages.slice(0, 10).forEach(p => {
+            pagesTbody.innerHTML += `<tr><td>${p.path}</td><td>${p.count}</td></tr>`;
+        });
+
+        // Populate Security
+        const securityTbody = document.querySelector('#security-table tbody');
+        data.security.slice(0, 10).forEach(s => {
+            securityTbody.innerHTML += `<tr><td><span class="badge">${s.threat_type}</span></td><td>${s.ip}</td><td>${s.country}</td><td>${s.count}</td></tr>`;
+        });
+
+        // Populate Releases
+        const releasesTbody = document.querySelector('#releases-table tbody');
+        data.releases.slice(0, 5).forEach(r => {
+            releasesTbody.innerHTML += `<tr><td>${r.date}</td><td><span class="badge">${r.version}</span></td><td>${r.title}</td></tr>`;
+        });
+
+        // Timeseries Chart
+        const ctx = document.getElementById('timeseriesChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.timeseries.map(d => d.date),
+                datasets: [{
+                    label: 'Requests',
+                    data: data.timeseries.map(d => d.count),
+                    borderColor: '#00f2fe',
+                    backgroundColor: 'rgba(0, 242, 254, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    </script>
+</body>
+</html>

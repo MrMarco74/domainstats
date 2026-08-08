@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+geoip2
+user-agents
+python-dateutil
+requests
+pylibs[ollama] @ git+ssh://git@gitlab.internal.familie-frischkorn.de/apps/pylibs.git@700de4f
