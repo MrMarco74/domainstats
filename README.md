@@ -1,5 +1,7 @@
 # DomainStats
 
+![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Language](https://img.shields.io/badge/language-Python-informational.svg) ![AI generated](https://img.shields.io/badge/AI-generated-8A2BE2.svg)
+
 DomainStats is a self-hosted web server log analytics and domain-reputation
 tool. It syncs Apache/Nginx access logs from a remote FTP/FTPS/SFTP server,
 parses and aggregates them into a local SQLite database, and exposes a
